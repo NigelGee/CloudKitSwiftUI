@@ -9,7 +9,6 @@
 import Foundation
 import CloudKit
 
-
 struct CloudKitHelper {
     //MARK: - record types
     struct RecordType {
@@ -42,15 +41,18 @@ struct CloudKitHelper {
 
             let recordID = record.recordID
 
-            guard let name = record["name"] as? String else {
+            guard
+                let name = record["name"] as? String,
+                let order = record["order"] as? Int
+                else {
                 completion(.failure(CloudKitHelperError.castFailure))
                 return
             }
 
-            guard let order = record["order"] as? Int else {
-                completion(.failure(CloudKitHelperError.castFailure))
-                return
-            }
+//            guard let order = record["order"] as? Int else {
+//                completion(.failure(CloudKitHelperError.castFailure))
+//                return
+//            }
 
             let element = Category(recordID: recordID, order: order, name: name)
 
@@ -61,12 +63,13 @@ struct CloudKitHelper {
     }
     
     static func saveItem(item: ListElement, completion: @escaping (Result<ListElement, Error>) -> ()) {
+        let categoryRecord = CKRecord(recordType: RecordType.Categories)
         let itemRecord = CKRecord(recordType: RecordType.Items)
         itemRecord["text"] = item.text as CKRecordValue
         itemRecord["title"] = item.title as CKRecordValue
         itemRecord["isEnable"] = item.isEnable as CKRecordValue
         itemRecord["types"] = item.types as CKRecordValue
-        itemRecord["category"] = item.category as CKRecordValue
+        itemRecord["category"] = CKRecord.Reference(record: categoryRecord, action: .deleteSelf)
         
         CKContainer.default().publicCloudDatabase.save(itemRecord) { (record, error) in
             if let error = error {
@@ -80,24 +83,14 @@ struct CloudKitHelper {
             }
             
             let id = record.recordID
-
-            guard let text = record["text"] as? String else {
-                completion(.failure(CloudKitHelperError.castFailure))
-                return
-            }
-            guard let title = record["title"] as? String else {
-                completion(.failure(CloudKitHelperError.castFailure))
-                return
-            }
-            guard let isEnable = record["isEnable"] as? Bool else {
-                completion(.failure(CloudKitHelperError.castFailure))
-                return
-            }
-            guard let types = record["types"] as? [String] else {
-                completion(.failure(CloudKitHelperError.castFailure))
-                return
-            }
-            guard let category = record["category"] as? String else {
+        
+            guard
+                let text = record["text"] as? String,
+                let title = record["title"] as? String,
+                let isEnable = record["isEnable"] as? Bool,
+                let types = record["types"] as? [String],
+                let category = record["category"] as? CKRecord.Reference
+                else {
                 completion(.failure(CloudKitHelperError.castFailure))
                 return
             }
@@ -119,24 +112,21 @@ struct CloudKitHelper {
         query.sortDescriptors = [order, name]
         
         let operation = CKQueryOperation(query: query)
-        operation.desiredKeys = ["order", "name"]
-        operation.resultsLimit = 50
         
         CKContainer.default().publicCloudDatabase.add(operation)
         
         operation.recordFetchedBlock = { record in
+            
             let recordID = record.recordID
             
-            guard let order = record["order"] as? Int else {
+            guard
+                let order = record["order"] as? Int,
+                let name = record["name"] as? String
+                else {
                 completion(.failure(CloudKitHelperError.castFailure))
                 return
             }
-            
-            guard let name = record["name"] as? String else {
-                completion(.failure(CloudKitHelperError.castFailure))
-                return
-            }
-            
+                        
             let category = Category(recordID: recordID, order: order, name: name)
             
             DispatchQueue.main.async {
@@ -145,50 +135,79 @@ struct CloudKitHelper {
         }
     }
     
+//    static func fetch(completion: @escaping (Result<ListElement, Error>) -> ()) {
+//        let listElement = ListElement()
+//        guard let itemID = listElement.recordID else { return }
+//        let recordToMatch = CKRecord.Reference(recordID: itemID, action: .deleteSelf)
+//        let predicate = NSPredicate(format: "category == %@", recordToMatch)
+//        let query = CKQuery(recordType: RecordType.Items, predicate: predicate)
+//        
+//        let operation = CKQueryOperation(query: query)
+//        
+//        operation.recordFetchedBlock = { record in
+//            
+//            let recordID = record.recordID
+//           
+//            guard
+//                let text = record["text"] as? String,
+//                let title = record["title"] as? String,
+//                let isEnable = record["isEnable"] as? Bool,
+//                let types = record["types"] as? [String],
+//                let category = record["category"] as? CKRecord.Reference
+//                else {
+//                completion(.failure(CloudKitHelperError.castFailure))
+//                return
+//            }
+//
+//            let elements = ListElement(recordID: recordID, title: title, text: text, isEnable: isEnable, types: types, category: category)
+//
+//            DispatchQueue.main.async {
+//                completion(.success(elements))
+//            }
+//        }
+//        
+//        operation.queryCompletionBlock = { (cursor, error) in
+//            DispatchQueue.main.async {
+//                if let error = error {
+//                    completion(.failure(error))
+//                    return
+//                }
+//            }
+//        }
+//    }
+    
     static func fetch(completion: @escaping (Result<ListElement, Error>) -> ()) {
         let predicate = NSPredicate(value: true)
         let sort = NSSortDescriptor(key: "creationDate", ascending: true)
         let query = CKQuery(recordType: RecordType.Items, predicate: predicate)
         query.sortDescriptors = [sort]
-        
+
         let operation = CKQueryOperation(query: query)
-        operation.desiredKeys = ["text", "title", "isEnable", "types", "category"]
-        operation.resultsLimit = 50
-        
+
         CKContainer.default().publicCloudDatabase.add(operation)
-        
+
         operation.recordFetchedBlock = { record in
-            
+
             let id = record.recordID
-            
-            guard let text = record["text"] as? String else {
+
+            guard
+                let text = record["text"] as? String,
+                let title = record["title"] as? String,
+                let isEnable = record["isEnable"] as? Bool,
+                let types = record["foodTypes"] as? [String],
+                let category = record["category"] as? CKRecord.Reference
+                else {
                 completion(.failure(CloudKitHelperError.castFailure))
                 return
             }
-            guard let title = record["title"] as? String else {
-                completion(.failure(CloudKitHelperError.castFailure))
-                return
-            }
-            guard let isEnable = record["isEnable"] as? Bool else {
-                completion(.failure(CloudKitHelperError.castFailure))
-                return
-            }
-            guard let types = record["foodTypes"] as? [String] else {
-                completion(.failure(CloudKitHelperError.castFailure))
-                return
-            }
-            guard let category = record["category"] as? String else {
-                completion(.failure(CloudKitHelperError.castFailure))
-                return
-            }
-            
+
             let element = ListElement(recordID: id, title: title, text: text, isEnable: isEnable, types: types, category: category)
-            
+
             DispatchQueue.main.async {
                 completion(.success(element))
             }
         }
-        
+
         operation.queryCompletionBlock = { (_, error) in
             DispatchQueue.main.async {
                 if let error = error {
@@ -272,12 +291,13 @@ struct CloudKitHelper {
                 }
                 guard let record = record else { return }
                 let id = record.recordID
+                guard let category = record["category"] as? CKRecord.Reference else { return }
                 guard let text = record["text"] as? String else { return }
                 guard let title = record["title"] as? String else { return }
                 guard let isEnable = record["isEnable"] as? Bool else { return }
                 guard let types = record["types"] as? [String] else { return }
                 
-                let element = ListElement(recordID: id, title: title, text: text, isEnable: isEnable, types: types)
+                let element = ListElement(recordID: id, title: title, text: text, isEnable: isEnable, types: types, category: category)
                 
                 DispatchQueue.main.async {
                     completion(.success(element))

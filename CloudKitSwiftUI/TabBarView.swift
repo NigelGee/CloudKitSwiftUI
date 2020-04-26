@@ -7,11 +7,12 @@
 //
 
 import SwiftUI
+import CloudKit
 
 struct TabBarView: View {
     @EnvironmentObject var listElements: ListElements
     @EnvironmentObject var listCategories: Categories
-    
+
     var body: some View {
         TabView {
             VenueView()
@@ -38,6 +39,7 @@ struct TabBarView: View {
     }
 //MARK: - Fetch from CloudKit
     private func fetch() {
+    
 //        CloudKitHelper.fetch { result in
 //            switch result {
 //            case .success(let newItem):
@@ -57,6 +59,7 @@ struct TabBarView: View {
                 print(error.localizedDescription)
             }
         }
+        
     }
 }
 

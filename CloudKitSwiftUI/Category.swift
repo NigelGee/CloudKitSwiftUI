@@ -9,7 +9,7 @@
 import Foundation
 import CloudKit
 
-struct Category: Identifiable {
+struct Category: Identifiable, Hashable {
     var id = UUID()
     var recordID: CKRecord.ID?
     var order: Int = 0

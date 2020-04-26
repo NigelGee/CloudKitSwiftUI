@@ -16,5 +16,5 @@ struct ListElement: Identifiable, Hashable {
     var text: String = ""
     var isEnable: Bool = true
     var types: [String] = []
-    var category: String = ""
+    var category: CKRecord.Reference?
 }
